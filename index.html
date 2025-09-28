@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ldxvin Music</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      text-align: center;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #2c3e50, #4ca1af);
+      color: white;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    header h1 { margin: 0; font-size: 2rem; }
+    .container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 2rem;
+    }
+    .playlist-container, .player-container {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .playlist-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .search-box {
+      border: none;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      width: 200px;
+    }
+    ul.playlist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.7rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .playlist-item:hover { background: #334155; }
+    .playlist-item.active { background: rgba(110, 69, 226, 0.3); }
+    .song-image { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+    .song-title { font-weight: 600; }
+    .song-artist { font-size: 0.9rem; color: #94a3b8; }
+    .player-container { text-align: center; }
+    .now-playing-image {
+      width: 200px; height: 200px; border-radius: 50%;
+      object-fit: cover; margin-bottom: 1rem;
+    }
+    .song-info { margin-bottom: 1rem; }
+    .controls { display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; }
+    .control-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: white;
+      width: 45px; height: 45px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .control-btn:hover { background: rgba(255,255,255,0.2); color: #6e45e2; }
+    .play-pause-btn {
+      background: linear-gradient(135deg, #6e45e2, #88d3ce);
+      width: 60px; height: 60px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-music"></i> Ldxvin Music</h1>
+    <p>Streaming lagu favoritmu langsung dari YouTube API</p>
+  </header>
+
+  <main class="container">
+    <div class="playlist-container">
+      <div class="playlist-header">
+        <h2>Daftar Putar</h2>
+        <input type="text" id="searchInput" class="search-box" placeholder="Cari lagu...">
+      </div>
+      <ul id="playlist" class="playlist"></ul>
+    </div>
+
+    <div class="player-container">
+      <img id="currentSongImage" class="now-playing-image" src="" alt="Album Art">
+      <div class="song-info">
+        <div id="currentSongTitle" class="song-title">Pilih lagu</div>
+        <div id="currentSongArtist" class="song-artist">-</div>
+      </div>
+
+      <div class="controls">
+        <button id="prevBtn" class="control-btn"><i class="fas fa-step-backward"></i></button>
+        <button id="playPauseBtn" class="control-btn play-pause-btn"><i class="fas fa-play"></i></button>
+        <button id="nextBtn" class="control-btn"><i class="fas fa-step-forward"></i></button>
+      </div>
+
+      <audio id="audioPlayer" controls style="margin-top:1rem;width:100%"></audio>
+    </div>
+  </main>
+
+  <script>
+    const playlistElement = document.getElementById('playlist');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const currentSongTitle = document.getElementById('currentSongTitle');
+    const currentSongArtist = document.getElementById('currentSongArtist');
+    const currentSongImage = document.getElementById('currentSongImage');
+    const searchInput = document.getElementById('searchInput');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let musicList = [];
+    let currentSongIndex = 0;
+    let isPlaying = false;
+
+    async function searchSongs(query) {
+      try {
+        const res = await fetch(`https://www.apis-anomaki.zone.id/search/ytsearch?query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (!data.status || !data.result.videos) return;
+        musicList = data.result.videos.slice(0,5); // ambil 5 saja
+        displayPlaylist(musicList);
+      } catch (err) {
+        console.error("Error search:", err);
+      }
+    }
+
+    function displayPlaylist(songs) {
+      playlistElement.innerHTML = "";
+      songs.forEach((song, index) => {
+        const li = document.createElement("li");
+        li.className = "playlist-item";
+        li.dataset.index = index;
+        li.innerHTML = `
+          <img src="${song.thumbnail}" class="song-image" alt="thumb">
+          <div>
+            <div class="song-title">${song.title}</div>
+            <div class="song-artist">${song.author?.name || "Unknown"}</div>
+          </div>
+          <div style="margin-left:auto;color:#94a3b8">${song.duration}</div>
+        `;
+        li.addEventListener("click", () => playSong(index));
+        playlistElement.appendChild(li);
+      });
+    }
+
+    async function playSong(index) {
+      currentSongIndex = index;
+      const song = musicList[index];
+
+      currentSongTitle.textContent = song.title;
+      currentSongArtist.textContent = song.author?.name || "-";
+      currentSongImage.src = song.thumbnail;
+
+      // Ambil audio dari API yta
+      const apiUrl = `https://www.apis-anomaki.zone.id/downloader/yta?url=${encodeURIComponent(song.url)}`;
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      if (data.status && data.result.data.downloadURL) {
+        const streamUrl = `/api/stream?url=${encodeURIComponent(data.result.data.downloadURL)}`;
+        audioPlayer.src = streamUrl;
+        audioPlayer.play();
+        isPlaying = true;
+        updatePlayPauseButton();
+      }
+    }
+
+    function updatePlayPauseButton() {
+      const icon = playPauseBtn.querySelector("i");
+      icon.className = isPlaying ? "fas fa-pause" : "fas fa-play";
+    }
+
+    playPauseBtn.addEventListener("click", () => {
+      if (isPlaying) {
+        audioPlayer.pause();
+        isPlaying = false;
+      } else {
+        audioPlayer.play();
+        isPlaying = true;
+      }
+      updatePlayPauseButton();
+    });
+
+    prevBtn.addEventListener("click", () => {
+      if (currentSongIndex > 0) playSong(currentSongIndex - 1);
+    });
+    nextBtn.addEventListener("click", () => {
+      if (currentSongIndex < musicList.length - 1) playSong(currentSongIndex + 1);
+    });
+
+    searchInput.addEventListener("keypress", e => {
+      if (e.key === "Enter") searchSongs(searchInput.value);
+    });
+
+    // Load default "Death Bed"
+    document.addEventListener("DOMContentLoaded", () => {
+      searchSongs("Death Bed");
+    });
+  </script>
+</body>
+</html>
