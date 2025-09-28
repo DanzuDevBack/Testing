@@ -183,9 +183,11 @@
       const res = await fetch(apiUrl);
       const data = await res.json();
       if (data.status && data.result.data.downloadURL) {
-        const streamUrl = `/api/stream?url=${encodeURIComponent(data.result.data.downloadURL)}`;
-        audioPlayer.src = streamUrl;
-        audioPlayer.play();
+        const backendUrl = "https://testing-backend-79dd.onrender.com"; // Ganti pakai URL Render kamu
+
+const streamUrl = `${backendUrl}/stream?url=${encodeURIComponent(data.result.data.downloadURL)}`;
+audioPlayer.src = streamUrl;
+audioPlayer.play();
         isPlaying = true;
         updatePlayPauseButton();
       }
